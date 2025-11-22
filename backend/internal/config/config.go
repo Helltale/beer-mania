@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/ilyakaznacheev/cleanenv"
@@ -36,12 +37,18 @@ type RabbitMQConfig struct {
 
 // MinIOConfig holds MinIO configuration
 type MinIOConfig struct {
-	Endpoint        string `env:"MINIO_ENDPOINT" env-default:"localhost:9000" validate:"required"`
-	AccessKey       string `env:"MINIO_ACCESS_KEY" env-default:"minioadmin" validate:"required"`
-	SecretKey       string `env:"MINIO_SECRET_KEY" env-default:"minioadmin" validate:"required"`
-	UseSSL          bool   `env:"MINIO_USE_SSL" env-default:"false"`
-	BucketUploads   string `env:"MINIO_BUCKET_UPLOADS" env-default:"uploads" validate:"required"`
-	BucketProcessed string `env:"MINIO_BUCKET_PROCESSED" env-default:"processed" validate:"required"`
+	Endpoint                    string `env:"MINIO_ENDPOINT" env-default:"localhost:9000" validate:"required"`
+	AccessKey                   string `env:"MINIO_ACCESS_KEY" env-default:"minioadmin" validate:"required"`
+	SecretKey                   string `env:"MINIO_SECRET_KEY" env-default:"minioadmin" validate:"required"`
+	UseSSL                      bool   `env:"MINIO_USE_SSL" env-default:"false"`
+	BucketUploads               string `env:"MINIO_BUCKET_UPLOADS" env-default:"uploads" validate:"required"`
+	BucketProcessed             string `env:"MINIO_BUCKET_PROCESSED" env-default:"processed" validate:"required"`
+	PresignedURLExpirationHours int    `env:"MINIO_PRESIGNED_URL_EXPIRATION_HOURS" env-default:"168" validate:"min=1,max=8760"` // Default: 7 days (168 hours), max: 1 year
+}
+
+// PresignedURLExpiration returns the presigned URL expiration time as time.Duration
+func (c *MinIOConfig) PresignedURLExpiration() time.Duration {
+	return time.Duration(c.PresignedURLExpirationHours) * time.Hour
 }
 
 // BackendConfig holds backend service configuration
