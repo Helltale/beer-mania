@@ -15,12 +15,14 @@ func init() {
 
 // DatabaseConfig holds database configuration
 type DatabaseConfig struct {
-	Host     string `env:"POSTGRES_HOST" env-default:"localhost" validate:"required"`
-	Port     string `env:"POSTGRES_PORT" env-default:"5432" validate:"required"`
-	User     string `env:"POSTGRES_USER" env-default:"beermania_user" validate:"required"`
-	Password string `env:"POSTGRES_PASSWORD" env-default:"beermania_password" validate:"required"`
-	DBName   string `env:"POSTGRES_DB" env-default:"beermania_db" validate:"required"`
-	SSLMode  string `env:"POSTGRES_SSLMODE" env-default:"disable" validate:"oneof=disable require verify-full verify-ca"`
+	Host         string `env:"POSTGRES_HOST" env-default:"localhost" validate:"required"`
+	Port         string `env:"POSTGRES_PORT" env-default:"5432" validate:"required"`
+	User         string `env:"POSTGRES_USER" env-default:"beermania_user" validate:"required"`
+	Password     string `env:"POSTGRES_PASSWORD" env-default:"beermania_password" validate:"required"`
+	DBName       string `env:"POSTGRES_DB" env-default:"beermania_db" validate:"required"`
+	SSLMode      string `env:"POSTGRES_SSLMODE" env-default:"disable" validate:"oneof=disable require verify-full verify-ca"`
+	MaxIdleConns int    `env:"POSTGRES_MAX_IDLE_CONNS" env-default:"10" validate:"min=1,max=1000"`
+	MaxOpenConns int    `env:"POSTGRES_MAX_OPEN_CONNS" env-default:"100" validate:"min=1,max=10000"`
 }
 
 // RabbitMQConfig holds RabbitMQ configuration

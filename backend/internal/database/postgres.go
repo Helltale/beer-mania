@@ -31,9 +31,9 @@ func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	// Set connection pool settings
-	sqlDB.SetMaxIdleConns(10)  //TODO: после перенести в env
-	sqlDB.SetMaxOpenConns(100) //TODO: после перенести в env
+	// Set connection pool settings from configuration
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 
 	return &DB{DB: db}, nil
 }
