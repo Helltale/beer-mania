@@ -1,0 +1,458 @@
+openapi: 3.0.3
+
+info:
+  title: Beer Mania API
+  description: |
+    API for image processing using neural networks.
+    Allows uploading images and getting processing results (adding a beer bottle to photos).
+  version: 1.0.0
+  contact:
+    name: Beer Mania Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: http://backend:8080
+    description: Docker container server
+
+tags:
+  - name: Images
+    description: Image operations
+  - name: Tasks
+    description: Processing task operations
+  - name: Health
+    description: Service health check
+
+paths:
+  /api/v1/images/upload:
+    post:
+      tags:
+        - Images
+      summary: Upload image for processing
+      description: |
+        Uploads an image, saves it and creates a processing task.
+        Returns image ID and processing task ID.
+      operationId: uploadImage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, WebP)
+            encoding:
+              file:
+                contentType: image/jpeg, image/png, image/webp
+      responses:
+        '201':
+          description: Image successfully uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadImageResponse'
+        '400':
+          description: Bad request (invalid file format or file missing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/images/{id}:
+    get:
+      tags:
+        - Images
+      summary: Get image metadata
+      description: Returns image metadata by its ID
+      operationId: getImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Image UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetImageResponse'
+        '404':
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/tasks/{id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get processing task status
+      description: Returns current status of image processing task
+      operationId: getTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTaskResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/tasks/{id}/result:
+    get:
+      tags:
+        - Tasks
+      summary: Get processed image
+      description: |
+        Returns processed image if task is completed.
+        If task is still processing, returns status 202.
+      operationId: getTaskResult
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Processed image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: Task is still processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "TASK_PROCESSING"
+                message: "Task is still being processed"
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      description: Checks service status and its dependencies
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    Image:
+      type: object
+      description: Image entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique image identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        original_url:
+          type: string
+          format: uri
+          description: Original image URL
+          example: "http://minio:9000/uploads/image.jpg"
+        processed_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Processed image URL (null if not processed yet)
+          example: "http://minio:9000/processed/image.jpg"
+        status:
+          $ref: '#/components/schemas/ImageStatus'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation date and time
+          example: "2024-11-22T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update date and time
+          example: "2024-11-22T10:05:00Z"
+      required:
+        - id
+        - original_url
+        - status
+        - created_at
+        - updated_at
+
+    ImageStatus:
+      type: string
+      enum:
+        - pending
+        - processing
+        - completed
+        - failed
+      description: Image status
+      example: "completed"
+
+    ProcessingTask:
+      type: object
+      description: Image processing task entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique task identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        image_id:
+          type: string
+          format: uuid
+          description: Associated image ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        error_message:
+          type: string
+          nullable: true
+          description: Error message (if status is failed)
+          example: "Processing failed: timeout"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation date and time
+          example: "2024-11-22T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update date and time
+          example: "2024-11-22T10:05:00Z"
+      required:
+        - id
+        - image_id
+        - status
+        - created_at
+        - updated_at
+
+    TaskStatus:
+      type: string
+      enum:
+        - pending
+        - processing
+        - completed
+        - failed
+      description: Task processing status
+      example: "processing"
+
+    UploadImageResponse:
+      type: object
+      description: Response to image upload request
+      properties:
+        image_id:
+          type: string
+          format: uuid
+          description: Created image ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        task_id:
+          type: string
+          format: uuid
+          description: Created processing task ID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+      required:
+        - image_id
+        - task_id
+
+    GetImageResponse:
+      type: object
+      description: Image metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        original_url:
+          type: string
+          format: uri
+          example: "http://minio:9000/uploads/image.jpg"
+        processed_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "http://minio:9000/processed/image.jpg"
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - completed
+            - failed
+          example: "completed"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-11-22T10:00:00Z"
+      required:
+        - id
+        - original_url
+        - status
+        - created_at
+
+    GetTaskResponse:
+      type: object
+      description: Processing task information
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        image_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - completed
+            - failed
+          example: "processing"
+        error_message:
+          type: string
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-11-22T10:00:00Z"
+      required:
+        - id
+        - image_id
+        - status
+        - created_at
+
+    Error:
+      type: object
+      description: API error response
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid file format. Supported formats: JPEG, PNG, WebP"
+        details:
+          type: object
+          nullable: true
+          description: Additional error details
+          additionalProperties: true
+      required:
+        - code
+        - message
+
+    HealthResponse:
+      type: object
+      description: Service health status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - error
+          description: Overall service status
+          example: "ok"
+        postgres:
+          type: string
+          enum:
+            - ok
+            - error
+          description: PostgreSQL connection status
+          example: "ok"
+        rabbitmq:
+          type: string
+          enum:
+            - ok
+            - error
+          description: RabbitMQ connection status
+          example: "ok"
+        minio:
+          type: string
+          enum:
+            - ok
+            - error
+          description: MinIO connection status
+          example: "ok"
+      required:
+        - status
