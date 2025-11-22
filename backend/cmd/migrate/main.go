@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/Helltale/beer-mania/backend/migrations"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -44,23 +45,36 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get database instance: %v", err)
 	}
-	defer sqlDB.Close()
 
 	if *rollback {
 		log.Println("Rolling back migrations...")
-		if err := migrations.RollbackMigrations(db); err != nil {
-			log.Fatalf("Failed to rollback migrations: %v", err)
+		if rollbackErr := migrations.RollbackMigrations(db); rollbackErr != nil {
+			if closeErr := sqlDB.Close(); closeErr != nil {
+				log.Printf("Failed to close database: %v", closeErr)
+			}
+			log.Printf("Failed to rollback migrations: %v", rollbackErr)
+			os.Exit(1)
 		}
 		log.Println("Migrations rolled back successfully")
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			log.Printf("Failed to close database: %v", closeErr)
+		}
 		return
 	}
 
 	log.Println("Running migrations...")
-	if err := migrations.RunMigrations(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	if migrateErr := migrations.RunMigrations(db); migrateErr != nil {
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			log.Printf("Failed to close database: %v", closeErr)
+		}
+		log.Printf("Failed to run migrations: %v", migrateErr)
+		os.Exit(1)
 	}
 
 	log.Println("Migrations completed successfully")
+	if closeErr := sqlDB.Close(); closeErr != nil {
+		log.Printf("Failed to close database: %v", closeErr)
+	}
 }
 
 func getEnv(key, defaultValue string) string {

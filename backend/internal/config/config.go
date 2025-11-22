@@ -8,13 +8,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-var validate *validator.Validate
-
-func init() {
-	validate = validator.New()
-}
-
-// DatabaseConfig holds database configuration
+//nolint:golines // long struct tags with metadata
 type DatabaseConfig struct {
 	Host         string `env:"POSTGRES_HOST" env-default:"localhost" validate:"required"`
 	Port         string `env:"POSTGRES_PORT" env-default:"5432" validate:"required"`
@@ -26,7 +20,7 @@ type DatabaseConfig struct {
 	MaxOpenConns int    `env:"POSTGRES_MAX_OPEN_CONNS" env-default:"100" validate:"min=1,max=10000"`
 }
 
-// RabbitMQConfig holds RabbitMQ configuration
+//nolint:golines // long struct tags with metadata
 type RabbitMQConfig struct {
 	Host     string `env:"RABBITMQ_HOST" env-default:"localhost" validate:"required"`
 	Port     string `env:"RABBITMQ_PORT" env-default:"5672" validate:"required"`
@@ -35,7 +29,7 @@ type RabbitMQConfig struct {
 	VHost    string `env:"RABBITMQ_VHOST" env-default:"/" validate:"required"`
 }
 
-// MinIOConfig holds MinIO configuration
+//nolint:golines // long struct tags with metadata
 type MinIOConfig struct {
 	Endpoint                    string `env:"MINIO_ENDPOINT" env-default:"localhost:9000" validate:"required"`
 	AccessKey                   string `env:"MINIO_ACCESS_KEY" env-default:"minioadmin" validate:"required"`
@@ -46,19 +40,17 @@ type MinIOConfig struct {
 	PresignedURLExpirationHours int    `env:"MINIO_PRESIGNED_URL_EXPIRATION_HOURS" env-default:"168" validate:"min=1,max=8760"` // Default: 7 days (168 hours), max: 1 year
 }
 
-// PresignedURLExpiration returns the presigned URL expiration time as time.Duration
 func (c *MinIOConfig) PresignedURLExpiration() time.Duration {
 	return time.Duration(c.PresignedURLExpirationHours) * time.Hour
 }
 
-// BackendConfig holds backend service configuration
+//nolint:golines // long struct tags with metadata
 type BackendConfig struct {
 	Port     string `env:"BACKEND_PORT" env-default:"8080" validate:"required"`
 	LogLevel string `env:"BACKEND_LOG_LEVEL" env-default:"info" validate:"oneof=debug info warn error"`
 	Env      string `env:"BACKEND_ENV" env-default:"development" validate:"oneof=development production staging"`
 }
 
-// Config holds all application configuration
 type Config struct {
 	Database DatabaseConfig
 	RabbitMQ RabbitMQConfig
@@ -66,7 +58,6 @@ type Config struct {
 	Backend  BackendConfig
 }
 
-// Load loads configuration from environment variables with validation
 func Load() (*Config, error) {
 	cfg := &Config{}
 
@@ -95,8 +86,9 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// Validate validates the configuration using struct tags
 func (c *Config) Validate() error {
+	validate := validator.New()
+
 	// Validate nested structs
 	if err := validate.Struct(c.Database); err != nil {
 		return fmt.Errorf("database config validation failed: %w", err)
@@ -117,7 +109,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// DSN returns the PostgreSQL connection string
 func (c *DatabaseConfig) DSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)

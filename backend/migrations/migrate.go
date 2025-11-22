@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/Helltale/beer-mania/backend/internal/entity"
+
 	"gorm.io/gorm"
 )
 
-// RunMigrations runs all database migrations using GORM AutoMigrate
 func RunMigrations(db *gorm.DB) error {
 	// Enable UUID extension for PostgreSQL
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
