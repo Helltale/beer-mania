@@ -18,12 +18,17 @@ const (
 
 // Image represents an image entity in the domain
 type Image struct {
-	ID           uuid.UUID   `json:"id" db:"id"`
-	OriginalURL  string      `json:"original_url" db:"original_url"`
-	ProcessedURL *string     `json:"processed_url" db:"processed_url"`
-	Status       ImageStatus `json:"status" db:"status"`
-	CreatedAt    time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time   `json:"updated_at" db:"updated_at"`
+	ID           uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()" db:"id"`
+	OriginalURL  string      `json:"original_url" gorm:"type:varchar(512);not null" db:"original_url"`
+	ProcessedURL *string     `json:"processed_url" gorm:"type:varchar(512)" db:"processed_url"`
+	Status       ImageStatus `json:"status" gorm:"type:varchar(20);not null;default:'pending';check:status IN ('pending','processing','completed','failed')" db:"status"`
+	CreatedAt    time.Time   `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP" db:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP" db:"updated_at"`
+}
+
+// TableName specifies the table name for Image
+func (Image) TableName() string {
+	return "images"
 }
 
 // IsValid checks if the image status is valid
